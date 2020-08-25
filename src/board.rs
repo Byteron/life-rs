@@ -13,7 +13,7 @@ pub struct Tile {
 }
 
 impl Tile {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Tile {
             position: Vec2::zero(),
             state: TileState::Alive,
@@ -30,12 +30,20 @@ pub struct Board {
 
 impl Board {
     pub fn new(width: i32, height: i32, border: f32) -> Self {
-        Board {
+        let mut board = Board {
             width,
             height,
             tiles: Box::new(vec![Tile::new(); (width * height) as usize]),
             border: Vec2::new(border, border),
+        };
+        
+
+        for i in 0..board.length() {
+            board.tiles[i as usize].position = board.idx2vec(i);
         }
+
+        board
+
     }
 
     pub fn length(&self) -> i32 {
