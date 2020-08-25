@@ -1,5 +1,5 @@
-mod life;
 mod board;
+mod life;
 
 use bevy::prelude::*;
 use life::Life;
