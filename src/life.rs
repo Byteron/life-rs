@@ -66,22 +66,25 @@ fn setup(
 
         let tile = board.tiles[i as usize];
 
-        commands.spawn((tile, sprite));
+        commands.spawn(sprite).with(tile);
     }
 }
 
 fn draw_tiles(
     color_theme: Res<ColorTheme>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    tile: &Tile,
-    mat: &mut Handle<ColorMaterial>,
+    mut query: Query<(&Tile, &mut Handle<ColorMaterial>)>
 ) {
-    // match tile.state {
-    //     TileState::Alive => {
-    //         mat = materials.add(color_theme.dead.into());
-    //     }
-    //     TileState::Dead => {
-    //         mat = materials.add(color_theme.dead.into());
-    //     }
-    // }
+    for (tile, color) in &mut query.iter() {
+        match tile.state {
+            TileState::Alive => {
+                let mut color_mat = materials.get_mut(&color).unwrap();
+                color_mat.color = color_theme.alive;
+            }
+            TileState::Dead => {
+                let mut color_mat = materials.get_mut(&color).unwrap();
+                color_mat.color = color_theme.dead;
+            }
+        }
+    }
 }
