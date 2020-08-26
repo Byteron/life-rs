@@ -36,14 +36,12 @@ impl Board {
             tiles: Box::new(vec![Tile::new(); (width * height) as usize]),
             border: Vec2::new(border, border),
         };
-        
 
         for i in 0..board.length() {
             board.tiles[i as usize].position = board.idx2vec(i);
         }
 
         board
-
     }
 
     pub fn length(&self) -> i32 {
@@ -70,7 +68,11 @@ impl Board {
         positions.push(position + Vec2::new(-1.0, -1.0));
 
         for pos in positions.iter() {
-            if pos.x() as i32 >= self.width || pos.x() < 0.0 || pos.y() as i32 >= self.height || pos.y() < 0.0 {
+            if pos.x() as i32 >= self.width
+                || pos.x() < 0.0
+                || pos.y() as i32 >= self.height
+                || pos.y() < 0.0
+            {
                 continue;
             }
 

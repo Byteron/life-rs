@@ -73,13 +73,13 @@ fn setup(
 
 fn rules(mut board: ResMut<Board>, mut query: Query<&mut TileIndex>) {
     let mut alive_vec = Vec::new();
-    
+
     alive_vec.resize(board.length() as usize, 0);
-    
+
     for idx in &mut query.iter() {
         let tile = board.tiles.get(idx.0).unwrap();
         let neighbors = &mut board.get_neighbors(tile.position);
-        
+
         let alive_count = {
             let mut i = 0;
             for n_tile in neighbors.iter() {
@@ -89,10 +89,10 @@ fn rules(mut board: ResMut<Board>, mut query: Query<&mut TileIndex>) {
             }
             i
         };
-        
+
         alive_vec[idx.0] = alive_count;
     }
-    
+
     for idx in &mut query.iter() {
         let mut tile = &mut board.tiles[idx.0];
         let alive_count = alive_vec[idx.0];
@@ -118,7 +118,6 @@ fn draw_tiles(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut query: Query<(&TileIndex, &mut Handle<ColorMaterial>)>,
 ) {
-
     for (idx, color) in &mut query.iter() {
         let tile = board.tiles.get(idx.0).unwrap();
 
