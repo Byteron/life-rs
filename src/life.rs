@@ -33,7 +33,7 @@ fn setup(
     let pixel_size = Vec2::new(600.0, 600.0);
     let tile_size = pixel_size / board.size();
 
-    let sprite = commands
+    commands
         .spawn(Camera2dComponents::default())
         .spawn(SpriteComponents {
             material: materials.add(color_theme.board.into()),
