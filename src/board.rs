@@ -1,12 +1,12 @@
 use bevy::math::Vec2;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum TileState {
     Alive,
     Dead,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Tile {
     pub position: Vec2,
     pub state: TileState,
@@ -54,10 +54,42 @@ impl Board {
         Vec2::new(self.width as f32, self.height as f32)
     }
 
+    pub fn get_neighbors(&self, position: Vec2) -> Vec<Tile> {
+        let mut neighbors = Vec::new();
+
+        let mut positions: Vec<Vec2> = Vec::new();
+
+        positions.push(position + Vec2::new(0.0, 1.0));
+        positions.push(position + Vec2::new(0.0, -1.0));
+        positions.push(position + Vec2::new(1.0, 0.0));
+        positions.push(position + Vec2::new(-1.0, 0.0));
+
+        positions.push(position + Vec2::new(1.0, 1.0));
+        positions.push(position + Vec2::new(1.0, -1.0));
+        positions.push(position + Vec2::new(-1.0, 1.0));
+        positions.push(position + Vec2::new(-1.0, -1.0));
+
+        for pos in positions.iter() {
+            if pos.x() as i32 >= self.width || pos.x() < 0.0 || pos.y() as i32 >= self.height || pos.y() < 0.0 {
+                continue;
+            }
+
+            let idx = self.vec2idx(pos.clone()) as usize;
+            let tile = self.tiles[idx].clone();
+            neighbors.push(tile);
+        }
+
+        neighbors
+    }
+
     pub fn idx2vec(&self, index: i32) -> Vec2 {
         let x = (index % self.width) as f32;
         let y = (index / self.width) as f32;
 
         Vec2::new(x, y)
+    }
+
+    pub fn vec2idx(&self, vec: Vec2) -> i32 {
+        vec.y() as i32 * self.width + vec.x() as i32
     }
 }

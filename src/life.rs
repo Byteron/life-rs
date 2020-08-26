@@ -6,16 +6,19 @@ pub struct Life;
 
 impl Plugin for Life {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_resource(Board::new(20, 20, 2.0))
+        app.add_resource(Board::new(64, 64, 2.0))
             .add_resource(ColorTheme {
                 board: Color::rgb(0.2, 0.2, 0.2),
                 alive: Color::rgb(0.8, 0.8, 0.8),
                 dead: Color::rgb(0.1, 0.1, 0.1),
             })
             .add_startup_system(setup.system())
+            .add_system(rules.system())
             .add_system(draw_tiles.system());
     }
 }
+
+struct TileIndex(usize);
 
 struct ColorTheme {
     board: Color,
@@ -64,18 +67,61 @@ fn setup(
             ..Default::default()
         };
 
-        let tile = board.tiles[i as usize];
+        commands.spawn(sprite).with(TileIndex(i as usize));
+    }
+}
 
-        commands.spawn(sprite).with(tile);
+fn rules(mut board: ResMut<Board>, mut query: Query<&mut TileIndex>) {
+    let mut alive_vec = Vec::new();
+    
+    alive_vec.resize(board.length() as usize, 0);
+    
+    for idx in &mut query.iter() {
+        let tile = board.tiles.get(idx.0).unwrap();
+        let neighbors = &mut board.get_neighbors(tile.position);
+        
+        let alive_count = {
+            let mut i = 0;
+            for n_tile in neighbors.iter() {
+                if n_tile.state == TileState::Alive {
+                    i += 1;
+                }
+            }
+            i
+        };
+        
+        alive_vec[idx.0] = alive_count;
+    }
+    
+    for idx in &mut query.iter() {
+        let mut tile = &mut board.tiles[idx.0];
+        let alive_count = alive_vec[idx.0];
+
+        match tile.state {
+            TileState::Alive => {
+                if alive_count > 3 || alive_count < 2 {
+                    tile.state = TileState::Dead;
+                }
+            }
+            TileState::Dead => {
+                if alive_count == 3 {
+                    tile.state = TileState::Alive;
+                }
+            }
+        }
     }
 }
 
 fn draw_tiles(
     color_theme: Res<ColorTheme>,
+    board: Res<Board>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut query: Query<(&Tile, &mut Handle<ColorMaterial>)>
+    mut query: Query<(&TileIndex, &mut Handle<ColorMaterial>)>,
 ) {
-    for (tile, color) in &mut query.iter() {
+
+    for (idx, color) in &mut query.iter() {
+        let tile = board.tiles.get(idx.0).unwrap();
+
         match tile.state {
             TileState::Alive => {
                 let mut color_mat = materials.get_mut(&color).unwrap();
