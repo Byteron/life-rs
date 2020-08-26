@@ -1,4 +1,4 @@
-use super::board::{Board, Tile, TileState};
+use super::board::{Board, TileState};
 use bevy::prelude::*;
 use rand::Rng;
 
