@@ -18,16 +18,16 @@ impl Coordinates {
         Coordinates { x, y }
     }
 
-    pub fn get_neighbors(coords: Coordinates) -> [Coordinates; 8] {
+    pub fn get_neighbors(&self) -> [Coordinates; 8] {
         [
-            coords + Coordinates::new(-1, -1),
-            coords + Coordinates::new(0, -1),
-            coords + Coordinates::new(1, -1),
-            coords + Coordinates::new(-1, 0),
-            coords + Coordinates::new(1, 0),
-            coords + Coordinates::new(-1, 1),
-            coords + Coordinates::new(0, 1),
-            coords + Coordinates::new(1, 1),
+            *self + Coordinates::new(-1, -1),
+            *self + Coordinates::new(0, -1),
+            *self + Coordinates::new(1, -1),
+            *self + Coordinates::new(-1, 0),
+            *self + Coordinates::new(1, 0),
+            *self + Coordinates::new(-1, 1),
+            *self + Coordinates::new(0, 1),
+            *self + Coordinates::new(1, 1),
         ]
     }
 
@@ -54,6 +54,12 @@ pub struct Tile {
 
 pub struct Generation {
     pub state: State,
+}
+
+impl Generation {
+    pub fn new(state: State) -> Self {
+        Generation { state }
+    }
 }
 
 impl Tile {

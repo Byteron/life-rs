@@ -19,7 +19,7 @@ impl Plugin for Life {
             .add_resource(Board::new(self.width, self.height))
             .add_startup_system(setup.system())
             .add_system(rules.system())
-            .add_system(update_tiles.system());
+            .add_system_to_stage(stage::POST_UPDATE, update_tiles.system());
     }
 }
 
@@ -57,6 +57,8 @@ fn setup(
         });
 
     for idx in 0..board.len() {
+        let mut rng = rand::thread_rng();
+        
         let coords = board.idx2cds(idx);
 
         let offset = tile_size / Vec2::new(2.0, 2.0);
@@ -65,35 +67,30 @@ fn setup(
         let pos2 = board.idx2cds(idx).to_vec() * tile_size - center + offset;
         let pos3 = Vec3::new(pos2.x(), pos2.y(), 1.0);
 
-        commands
-            .spawn(Camera2dComponents::default())
-            .spawn(SpriteComponents {
-                material: *&theme.alive,
-                translation: Translation(pos3),
-                sprite: Sprite {
-                    size: tile_size - theme.border,
-                },
-                ..Default::default()
-            })
-            .with(Generation {
-                state: State::Alive,
-            })
-            .with(coords);
-
-        let mut rng = rand::thread_rng();
-
         let state = if rng.gen_bool(0.5) {
             State::Alive
         } else {
             State::Dead
         };
 
-        board
-            .tiles
-            .push(Tile::new(state, Coordinates::get_neighbors(coords)));
+        commands
+            .spawn(Camera2dComponents::default())
+            .spawn(SpriteComponents {
+                material: theme.alive,
+                translation: Translation(pos3),
+                sprite: Sprite {
+                    size: tile_size - theme.border,
+                },
+                ..Default::default()
+            })
+            .with(Generation::new(state))
+            .with(coords);
 
-        commands.insert_resource(theme);
+
+        board.tiles.push(Tile::new(state, coords.get_neighbors()));
     }
+
+    commands.insert_resource(theme);
 }
 
 fn rules(board: ResMut<Board>, mut query: Query<(&Coordinates, &mut Generation)>) {
@@ -135,7 +132,7 @@ fn update_tiles(
     colors: Res<Theme>,
     mut query: Query<(
         &Coordinates,
-        Mutated<Generation>,
+        &mut Generation,
         &mut Handle<ColorMaterial>,
     )>,
 ) {
