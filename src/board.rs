@@ -1,50 +1,92 @@
 use bevy::math::Vec2;
+use std::ops::Add;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum TileState {
+#[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
+pub enum State {
     Alive,
     Dead,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
+pub struct Coordinates {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl Coordinates {
+    pub fn new(x: i32, y: i32) -> Self {
+        Coordinates { x, y }
+    }
+
+    pub fn get_neighbors(coords: Coordinates) -> [Coordinates; 8] {
+        [
+            coords + Coordinates::new(-1, -1),
+            coords + Coordinates::new(0, -1),
+            coords + Coordinates::new(1, -1),
+            coords + Coordinates::new(-1, 0),
+            coords + Coordinates::new(1, 0),
+            coords + Coordinates::new(-1, 1),
+            coords + Coordinates::new(0, 1),
+            coords + Coordinates::new(1, 1),
+        ]
+    }
+
+    pub fn to_vec(&self) -> Vec2 {
+        Vec2::new(self.x as f32, self.y as f32)
+    }
+}
+
+impl Add<Coordinates> for Coordinates {
+    type Output = Coordinates;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Coordinates {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
 pub struct Tile {
-    pub position: Vec2,
-    pub state: TileState,
+    pub state: State,
+    pub neighbors: [Coordinates; 8],
+}
+
+pub struct Generation {
+    pub state: State,
 }
 
 impl Tile {
-    pub fn new() -> Self {
-        Tile {
-            position: Vec2::zero(),
-            state: TileState::Alive,
-        }
+    pub fn new(state: State, neighbors: [Coordinates; 8]) -> Self {
+        Tile { state, neighbors }
     }
 }
 
 pub struct Board {
     pub width: i32,
     pub height: i32,
-    pub tiles: Box<Vec<Tile>>,
-    pub border: Vec2,
+    pub tiles: Vec<Tile>,
 }
 
 impl Board {
-    pub fn new(width: i32, height: i32, border: f32) -> Self {
-        let mut board = Board {
+    pub fn new(width: i32, height: i32) -> Self {
+        Board {
             width,
             height,
-            tiles: Box::new(vec![Tile::new(); (width * height) as usize]),
-            border: Vec2::new(border, border),
-        };
-
-        for i in 0..board.length() {
-            board.tiles[i as usize].position = board.idx2vec(i);
+            tiles: Vec::with_capacity((width * height) as usize),
         }
-
-        board
     }
 
-    pub fn length(&self) -> i32 {
+    pub fn get_tile(&self, coords: Coordinates) -> Option<&Tile> {
+        self.tiles.get(self.cds2idx(coords) as usize)
+    }
+
+    pub fn get_mut_tile(&mut self, coords: Coordinates) -> Option<&mut Tile> {
+        let idx = self.cds2idx(coords);
+        self.tiles.get_mut(idx as usize)
+    }
+
+    pub fn len(&self) -> i32 {
         self.width * self.height
     }
 
@@ -52,46 +94,14 @@ impl Board {
         Vec2::new(self.width as f32, self.height as f32)
     }
 
-    pub fn get_neighbors(&self, position: Vec2) -> Vec<Tile> {
-        let mut neighbors = Vec::new();
-
-        let mut positions: Vec<Vec2> = Vec::new();
-
-        positions.push(position + Vec2::new(0.0, 1.0));
-        positions.push(position + Vec2::new(0.0, -1.0));
-        positions.push(position + Vec2::new(1.0, 0.0));
-        positions.push(position + Vec2::new(-1.0, 0.0));
-
-        positions.push(position + Vec2::new(1.0, 1.0));
-        positions.push(position + Vec2::new(1.0, -1.0));
-        positions.push(position + Vec2::new(-1.0, 1.0));
-        positions.push(position + Vec2::new(-1.0, -1.0));
-
-        for pos in positions.iter() {
-            if pos.x() as i32 >= self.width
-                || pos.x() < 0.0
-                || pos.y() as i32 >= self.height
-                || pos.y() < 0.0
-            {
-                continue;
-            }
-
-            let idx = self.vec2idx(pos.clone()) as usize;
-            let tile = self.tiles[idx].clone();
-            neighbors.push(tile);
+    pub fn idx2cds(&self, idx: i32) -> Coordinates {
+        Coordinates {
+            x: idx % self.height,
+            y: idx / self.height,
         }
-
-        neighbors
     }
 
-    pub fn idx2vec(&self, index: i32) -> Vec2 {
-        let x = (index % self.width) as f32;
-        let y = (index / self.width) as f32;
-
-        Vec2::new(x, y)
-    }
-
-    pub fn vec2idx(&self, vec: Vec2) -> i32 {
-        vec.y() as i32 * self.width + vec.x() as i32
+    pub fn cds2idx(&self, coords: Coordinates) -> i32 {
+        coords.y * self.width + coords.x
     }
 }
