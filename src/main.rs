@@ -11,8 +11,8 @@ fn main() {
         .add_plugin(FrameTimeDiagnosticsPlugin)
         .add_plugin(PrintDiagnosticsPlugin::default())
         .add_plugin(Life {
-            width: 40,
-            height: 40,
+            width: 32,
+            height: 32,
             border: Vec2::new(2.0, 2.0),
             color_board: Color::rgb(0.2, 0.2, 0.2),
             color_alive: Color::rgb(0.8, 0.8, 0.8),
