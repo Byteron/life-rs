@@ -74,7 +74,6 @@ fn setup(
         };
 
         commands
-            .spawn(Camera2dComponents::default())
             .spawn(SpriteComponents {
                 material: theme.alive,
                 translation: Translation(pos3),
