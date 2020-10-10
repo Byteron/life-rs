@@ -51,14 +51,17 @@ fn setup(
         .spawn(Camera2dComponents::default())
         .spawn(SpriteComponents {
             material: theme.board,
-            translation: Translation(Vec3::zero()),
-            sprite: Sprite { size: pixel_size },
+            transform: Transform::from_translation(Vec3::zero()),
+            sprite: Sprite {
+                size: pixel_size,
+                resize_mode: SpriteResizeMode::default(),
+            },
             ..Default::default()
         });
 
     for idx in 0..board.len() {
         let mut rng = rand::thread_rng();
-        
+
         let coords = board.idx2cds(idx);
 
         let offset = tile_size / Vec2::new(2.0, 2.0);
@@ -76,15 +79,15 @@ fn setup(
         commands
             .spawn(SpriteComponents {
                 material: theme.alive,
-                translation: Translation(pos3),
+                transform: Transform::from_translation(pos3),
                 sprite: Sprite {
                     size: tile_size - theme.border,
+                    resize_mode: SpriteResizeMode::default(),
                 },
                 ..Default::default()
             })
             .with(Generation::new(state))
             .with(coords);
-
 
         board.tiles.push(Tile::new(state, coords.get_neighbors()));
     }
@@ -92,35 +95,33 @@ fn setup(
     commands.insert_resource(theme);
 }
 
-fn rules(board: ResMut<Board>, mut query: Query<(&Coordinates, &mut Generation)>) {
-    for (coords, mut gen) in &mut query.iter() {
-        let tile = board.get_tile(*coords).unwrap();
+fn rules(board: ResMut<Board>, coords: &Coordinates, mut gen: Mut<Generation>) {
+    let tile = board.get_tile(*coords).unwrap();
 
-        let alive_count = tile
-            .neighbors
-            .iter()
-            .filter(|n| match board.get_tile(**n) {
-                Some(tile) => {
-                    if tile.state == State::Alive {
-                        true
-                    } else {
-                        false
-                    }
-                }
-                None => false,
-            })
-            .count();
-
-        match tile.state {
-            State::Alive => {
-                if alive_count < 2 || alive_count > 3 {
-                    gen.state = State::Dead;
+    let alive_count = tile
+        .neighbors
+        .iter()
+        .filter(|n| match board.get_tile(**n) {
+            Some(tile) => {
+                if tile.state == State::Alive {
+                    true
+                } else {
+                    false
                 }
             }
-            State::Dead => {
-                if alive_count == 3 {
-                    gen.state = State::Alive;
-                }
+            None => false,
+        })
+        .count();
+
+    match tile.state {
+        State::Alive => {
+            if alive_count < 2 || alive_count > 3 {
+                gen.state = State::Dead;
+            }
+        }
+        State::Dead => {
+            if alive_count == 3 {
+                gen.state = State::Alive;
             }
         }
     }
@@ -129,23 +130,19 @@ fn rules(board: ResMut<Board>, mut query: Query<(&Coordinates, &mut Generation)>
 fn update_tiles(
     mut board: ResMut<Board>,
     colors: Res<Theme>,
-    mut query: Query<(
-        &Coordinates,
-        &mut Generation,
-        &mut Handle<ColorMaterial>,
-    )>,
+    mut mat: Mut<Handle<ColorMaterial>>,
+    coords: &Coordinates,
+    gen: &Generation,
 ) {
-    for (coords, gen, mut mat) in &mut query.iter() {
-        let mut tile = board.get_mut_tile(*coords).unwrap();
-        tile.state = gen.state;
+    let mut tile = board.get_mut_tile(*coords).unwrap();
+    tile.state = gen.state;
 
-        match tile.state {
-            State::Alive => {
-                *mat = colors.alive;
-            }
-            State::Dead => {
-                *mat = colors.dead;
-            }
+    match tile.state {
+        State::Alive => {
+            *mat = colors.alive;
+        }
+        State::Dead => {
+            *mat = colors.dead;
         }
     }
 }
