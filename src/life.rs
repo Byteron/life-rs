@@ -18,7 +18,7 @@ impl Plugin for Life {
         app.add_resource(self.clone())
             .add_resource(Board::new(self.width, self.height))
             .add_startup_system(setup.system())
-            .add_system(rules.system())
+            .add_system(apply_rules.system())
             .add_system_to_stage(stage::POST_UPDATE, update_tiles.system());
     }
 }
@@ -95,7 +95,7 @@ fn setup(
     commands.insert_resource(theme);
 }
 
-fn rules(board: ResMut<Board>, coords: &Coordinates, mut gen: Mut<Generation>) {
+fn apply_rules(board: ResMut<Board>, coords: &Coordinates, mut gen: Mut<Generation>) {
     let tile = board.get_tile(*coords).unwrap();
 
     let alive_count = tile
@@ -132,7 +132,7 @@ fn update_tiles(
     colors: Res<Theme>,
     mut mat: Mut<Handle<ColorMaterial>>,
     coords: &Coordinates,
-    gen: &Generation,
+    gen: Changed<Generation>,
 ) {
     let mut tile = board.get_mut_tile(*coords).unwrap();
     tile.state = gen.state;
