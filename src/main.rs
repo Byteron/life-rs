@@ -6,7 +6,7 @@ use life::*;
 
 fn main() {
     App::build()
-        .add_default_plugins()
+        .add_plugins(DefaultPlugins)
         .add_plugin(DiagnosticsPlugin)
         .add_plugin(FrameTimeDiagnosticsPlugin)
         .add_plugin(PrintDiagnosticsPlugin::default())

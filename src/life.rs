@@ -50,7 +50,7 @@ fn setup(
     commands
         .spawn(Camera2dComponents::default())
         .spawn(SpriteComponents {
-            material: theme.board,
+            material: theme.board.clone_weak(),
             transform: Transform::from_translation(Vec3::zero()),
             sprite: Sprite {
                 size: pixel_size,
@@ -78,7 +78,7 @@ fn setup(
 
         commands
             .spawn(SpriteComponents {
-                material: theme.alive,
+                material: theme.alive.clone_weak(),
                 transform: Transform::from_translation(pos3),
                 sprite: Sprite {
                     size: tile_size - theme.border,
@@ -139,10 +139,10 @@ fn update_tiles(
 
     match tile.state {
         State::Alive => {
-            *mat = colors.alive;
+            *mat = colors.alive.clone_weak();
         }
         State::Dead => {
-            *mat = colors.dead;
+            *mat = colors.dead.clone_weak();
         }
     }
 }
