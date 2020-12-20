@@ -2,7 +2,7 @@ use bevy::math::Vec2;
 use std::ops::Add;
 
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
-pub enum State {
+pub enum TileState {
     Alive,
     Dead,
 }
@@ -48,22 +48,22 @@ impl Add<Coordinates> for Coordinates {
 }
 
 pub struct Tile {
-    pub state: State,
+    pub state: TileState,
     pub neighbors: [Coordinates; 8],
 }
 
 pub struct Generation {
-    pub state: State,
+    pub state: TileState,
 }
 
 impl Generation {
-    pub fn new(state: State) -> Self {
+    pub fn new(state: TileState) -> Self {
         Generation { state }
     }
 }
 
 impl Tile {
-    pub fn new(state: State, neighbors: [Coordinates; 8]) -> Self {
+    pub fn new(state: TileState, neighbors: [Coordinates; 8]) -> Self {
         Tile { state, neighbors }
     }
 }
