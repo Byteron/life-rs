@@ -11,12 +11,13 @@ fn main() {
         .add_plugin(FrameTimeDiagnosticsPlugin)
         .add_plugin(PrintDiagnosticsPlugin::default())
         .add_plugin(Life {
-            width: 80,
-            height: 80,
-            border: Vec2::new(2.0, 2.0),
-            color_board: Color::rgb(0.2, 0.2, 0.2),
-            color_alive: Color::rgb(0.8, 0.8, 0.8),
-            color_dead: Color::rgb(0.1, 0.1, 0.1),
+            board_width: 80,
+            board_height: 80,
+            pixel_size: Vec2::new(700.0, 700.0),
+            border_size: Vec2::new(2.0, 2.0),
+            board_color: Color::rgb(0.2, 0.2, 0.2),
+            alive_color: Color::rgb(0.8, 0.8, 0.8),
+            dead_color: Color::rgb(0.1, 0.1, 0.1),
         })
         .run();
 }

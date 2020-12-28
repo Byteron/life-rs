@@ -5,18 +5,19 @@ use super::board::*;
 
 #[derive(Copy, Clone)]
 pub struct Life {
-    pub width: i32,
-    pub height: i32,
-    pub border: Vec2,
-    pub color_board: Color,
-    pub color_alive: Color,
-    pub color_dead: Color,
+    pub board_width: i32,
+    pub board_height: i32,
+    pub pixel_size: Vec2,
+    pub border_size: Vec2,
+    pub board_color: Color,
+    pub alive_color: Color,
+    pub dead_color: Color,
 }
 
 impl Plugin for Life {
     fn build(&self, app: &mut AppBuilder) {
         app.add_resource(self.clone())
-            .add_resource(Board::new(self.width, self.height))
+            .add_resource(Board::new(self.board_width, self.board_height))
             .add_stage_after(
                 stage::UPDATE,
                 "fixed_update",
@@ -29,12 +30,25 @@ impl Plugin for Life {
     }
 }
 
-#[derive(Default)]
-struct Theme {
-    border: Vec2,
-    board: Handle<ColorMaterial>,
-    alive: Handle<ColorMaterial>,
-    dead: Handle<ColorMaterial>,
+impl Life {
+    fn get_tile_pixel_size(&self) -> Vec2 {
+        self.pixel_size / Vec2::new(self.board_width as f32, self.board_height as f32)
+    }
+
+    fn get_board_pixel_center(&self) -> Vec2 {
+        self.pixel_size / 2.0
+    }
+
+    fn get_tile_pixel_offset(&self) -> Vec2 {
+        self.get_tile_pixel_size() / 2.0
+    }
+
+    fn get_coord_transform(&self, coords: Coordinates) -> Transform {
+        let pos2 = coords.to_vec() * self.get_tile_pixel_size() - self.get_board_pixel_center()
+            + self.get_tile_pixel_offset();
+        let pos3 = Vec3::new(pos2.x, pos2.y, 1.0);
+        Transform::from_translation(pos3)
+    }
 }
 
 fn setup(
@@ -44,85 +58,82 @@ fn setup(
     life: Res<Life>,
 ) {
     let theme = Theme {
-        border: life.border,
-        board: materials.add(life.color_board.into()),
-        alive: materials.add(life.color_alive.into()),
-        dead: materials.add(life.color_dead.into()),
+        border_size: life.border_size,
+        board_mat: materials.add(life.board_color.into()),
+        alive_mat: materials.add(life.alive_color.into()),
+        dead_mat: materials.add(life.dead_color.into()),
     };
-
-    let pixel_size = Vec2::new(600.0, 600.0);
-    let tile_size = pixel_size / board.size();
 
     commands
         .spawn(Camera2dBundle::default())
         .spawn(SpriteBundle {
-            material: theme.board.clone_weak(),
+            material: theme.get_board_mat(),
             transform: Transform::from_translation(Vec3::zero()),
             sprite: Sprite {
-                size: pixel_size,
+                size: life.pixel_size,
                 resize_mode: SpriteResizeMode::default(),
             },
             ..Default::default()
         });
 
-    for idx in 0..board.len() {
-        let mut rng = rand::thread_rng();
+    let tile_pixel_size = life.get_tile_pixel_size();
+    let mut rng = rand::thread_rng();
 
-        let coords = board.idx2cds(idx);
+    for y in 0..board.height {
+        for x in 0..board.width {
+            let coords = Coordinates::new(x, y);
 
-        let offset = tile_size / Vec2::new(2.0, 2.0);
-        let center = pixel_size / Vec2::new(2.0, 2.0);
+            let state = if rng.gen_bool(0.5) {
+                TileState::Alive
+            } else {
+                TileState::Dead
+            };
 
-        let pos2 = board.idx2cds(idx).to_vec() * tile_size - center + offset;
-        let pos3 = Vec3::new(pos2.x, pos2.y, 1.0);
+            let material = match state {
+                TileState::Alive => theme.get_alive_mat(),
+                TileState::Dead => theme.get_dead_mat(),
+            };
 
-        let state = if rng.gen_bool(0.5) {
-            TileState::Alive
-        } else {
-            TileState::Dead
-        };
+            commands
+                .spawn(SpriteBundle {
+                    material: material,
+                    transform: life.get_coord_transform(coords),
+                    sprite: Sprite {
+                        size: tile_pixel_size - theme.border_size,
+                        resize_mode: SpriteResizeMode::default(),
+                    },
+                    ..Default::default()
+                })
+                .with(coords)
+                .with(Generation { state });
 
-        commands
-            .spawn(SpriteBundle {
-                material: theme.alive.clone_weak(),
-                transform: Transform::from_translation(pos3),
-                sprite: Sprite {
-                    size: tile_size - theme.border,
-                    resize_mode: SpriteResizeMode::default(),
-                },
-                ..Default::default()
-            })
-            .with(Generation::new(state))
-            .with(coords);
-
-        board.tiles.push(Tile::new(state, coords.get_neighbors()));
+            board.tiles.insert(coords, Tile { state });
+        }
     }
 
     commands.insert_resource(theme);
 }
 
-fn rules(board: ResMut<Board>, mut query: Query<(&mut Generation, &Coordinates)>) {
-    for (mut gen, coords) in query.iter_mut() {
-        let tile = board.get_tile(*coords).unwrap();
+fn rules(board: ResMut<Board>, mut query: Query<(&Coordinates, &mut Generation)>) {
+    for (coords, mut gen) in query.iter_mut() {
+        let tile = board.get_tile(coords).unwrap();
 
-        let alive_count = tile
-            .neighbors
-            .iter()
-            .filter(|n| match board.get_tile(**n) {
-                Some(tile) => {
-                    if tile.state == TileState::Alive {
-                        true
-                    } else {
-                        false
+        let mut alive_count = 0;
+
+        for n_coords in coords.get_neighbors().iter() {
+            if let Some(n_tile) = board.get_tile(n_coords) {
+                match n_tile.state {
+                    TileState::Alive => {
+                        alive_count += 1;
                     }
+                    TileState::Dead => {}
                 }
-                None => false,
-            })
-            .count();
+            }
+        }
 
         match tile.state {
             TileState::Alive => {
-                if alive_count < 2 || alive_count > 3 {
+                if alive_count > 3 || alive_count < 2 {
                     gen.state = TileState::Dead;
                 }
             }
@@ -137,19 +148,19 @@ fn rules(board: ResMut<Board>, mut query: Query<(&mut Generation, &Coordinates)>
 
 fn update_tiles(
     mut board: ResMut<Board>,
-    colors: Res<Theme>,
+    theme: Res<Theme>,
     mut query: Query<(&Coordinates, &Generation, &mut Handle<ColorMaterial>), Changed<Generation>>,
 ) {
     for (coords, gen, mut mat) in query.iter_mut() {
-        let mut tile = board.get_mut_tile(*coords).unwrap();
+        let mut tile = board.get_mut_tile(coords).unwrap();
         tile.state = gen.state;
-    
+
         match tile.state {
             TileState::Alive => {
-                *mat = colors.alive.clone_weak();
+                *mat = theme.get_alive_mat();
             }
             TileState::Dead => {
-                *mat = colors.dead.clone_weak();
+                *mat = theme.get_dead_mat();
             }
         }
     }
