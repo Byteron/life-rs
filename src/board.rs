@@ -1,5 +1,5 @@
-use bevy::{math::Vec2, prelude::Handle, sprite::ColorMaterial};
-use std::{collections::HashMap, ops::Add};
+use bevy::{ecs::Entity, math::Vec2, prelude::Handle, sprite::ColorMaterial};
+use std::{ops::Add};
 
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
 pub enum TileState {
@@ -58,24 +58,38 @@ impl Add<Coordinates> for Coordinates {
 pub struct Board {
     pub width: i32,
     pub height: i32,
-    pub tiles: HashMap<Coordinates, Tile>,
+    pub tiles: Vec<Vec<Option<Entity>>>,
 }
 
 impl Board {
     pub fn new(width: i32, height: i32) -> Self {
+        let mut tiles = Vec::default();
+        
+        tiles.append(&mut vec![Vec::default(); width as usize]);
+
+        for column in tiles.iter_mut() {
+            column.append(&mut vec![None; height as usize]);
+        }
+        
         Board {
             width,
             height,
-            tiles: HashMap::default(),
+            tiles,
         }
     }
 
-    pub fn get_tile(&self, coords: &Coordinates) -> Option<&Tile> {
-        self.tiles.get(coords)
+    pub fn set(&mut self, coords: Coordinates, entity: Entity) {
+        self.tiles[coords.x as usize][coords.y as usize] = Some(entity);
     }
 
-    pub fn get_mut_tile(&mut self, coords: &Coordinates) -> Option<&mut Tile> {
-        self.tiles.get_mut(coords)
+    pub fn get(&self, coords: &Coordinates) -> Option<Entity> {
+        if let Some(column) = self.tiles.get(coords.y as usize) {
+            if let Some(entity) = column.get(coords.x as usize) {
+                return *entity;
+            }
+        }
+
+        return None;
     }
 }
 

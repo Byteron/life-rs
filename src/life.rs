@@ -94,7 +94,7 @@ fn setup(
                 TileState::Dead => theme.get_dead_mat(),
             };
 
-            commands
+            let entity = commands
                 .spawn(SpriteBundle {
                     material: material,
                     transform: life.get_coord_transform(coords),
@@ -105,41 +105,50 @@ fn setup(
                     ..Default::default()
                 })
                 .with(coords)
-                .with(Generation { state });
-
-            board.tiles.insert(coords, Tile { state });
+                .with(Generation { state })
+                .with(Tile { state })
+                .current_entity()
+                .unwrap();
+            
+                board.set(coords, entity);
         }
     }
 
     commands.insert_resource(theme);
 }
 
-fn rules(board: ResMut<Board>, mut query: Query<(&Coordinates, &mut Generation)>) {
-    for (coords, mut gen) in query.iter_mut() {
-        let tile = board.get_tile(coords).unwrap();
-
-        let mut alive_count = 0;
-
-        for n_coords in coords.get_neighbors().iter() {
-            if let Some(n_tile) = board.get_tile(n_coords) {
-                match n_tile.state {
-                    TileState::Alive => {
-                        alive_count += 1;
+fn rules(board: ResMut<Board>, mut query: Query<(&Tile, &mut Generation)>) {
+    for y in 0..board.height {
+        for x in 0..board.width {
+            let coords = Coordinates::new(x, y);
+            let entity = board.get(&coords).unwrap();
+            
+            let mut alive_count = 0;
+            
+            for n_coords in coords.get_neighbors().iter() {
+                if let Some(n) = board.get(n_coords) {
+                    let n_tile = query.get_mut(n).unwrap().0;
+                    match n_tile.state {
+                        TileState::Alive => {
+                            alive_count += 1;
+                        }
+                        TileState::Dead => {}
                     }
-                    TileState::Dead => {}
                 }
             }
-        }
+            
+            let (tile, mut gen) = query.get_mut(entity).unwrap();
 
-        match tile.state {
-            TileState::Alive => {
-                if alive_count > 3 || alive_count < 2 {
-                    gen.state = TileState::Dead;
+            match tile.state {
+                TileState::Alive => {
+                    if alive_count > 3 || alive_count < 2 {
+                        gen.state = TileState::Dead;
+                    }
                 }
-            }
-            TileState::Dead => {
-                if alive_count == 3 {
-                    gen.state = TileState::Alive;
+                TileState::Dead => {
+                    if alive_count == 3 {
+                        gen.state = TileState::Alive;
+                    }
                 }
             }
         }
@@ -147,12 +156,10 @@ fn rules(board: ResMut<Board>, mut query: Query<(&Coordinates, &mut Generation)>
 }
 
 fn update_tiles(
-    mut board: ResMut<Board>,
     theme: Res<Theme>,
-    mut query: Query<(&Coordinates, &Generation, &mut Handle<ColorMaterial>), Changed<Generation>>,
+    mut query: Query<(&mut Tile, &Generation, &mut Handle<ColorMaterial>), Changed<Generation>>,
 ) {
-    for (coords, gen, mut mat) in query.iter_mut() {
-        let mut tile = board.get_mut_tile(coords).unwrap();
+    for (mut tile, gen, mut mat) in query.iter_mut() {
         tile.state = gen.state;
 
         match tile.state {
