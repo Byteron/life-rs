@@ -1,4 +1,4 @@
-use bevy::{math::i32, prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap};
 use rand::Rng;
 
 // RESOURCES
@@ -68,8 +68,8 @@ fn main() {
         })
         .add_startup_system(setup)
         .add_system(tick)
-        .add_system(revive)
-        .add_system(starve)
+        .add_system_to_stage(CoreStage::PostUpdate, revive)
+        .add_system_to_stage(CoreStage::PostUpdate, starve)
         .run();
 }
 
