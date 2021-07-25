@@ -67,9 +67,9 @@ fn main() {
             dead_color: Color::rgb(0.1, 0.1, 0.1),
         })
         .add_startup_system(setup)
-        .add_system(tick)
-        .add_system_to_stage(CoreStage::PostUpdate, revive)
-        .add_system_to_stage(CoreStage::PostUpdate, starve)
+        .add_system(tick.label("Tick"))
+        .add_system(revive.after("Tick"))
+        .add_system(starve.after("Tick"))
         .run();
 }
 
