@@ -21,7 +21,7 @@ struct Cells(HashMap<Coords, Entity>);
 
 // COMPONENTS
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Component, Clone, Copy, PartialEq, Eq, Hash)]
 struct Coords(IVec2);
 
 impl Coords {
@@ -39,7 +39,7 @@ impl Coords {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Component, Clone, Copy, PartialEq, Eq)]
 enum State {
     Alive,
     Dead,
@@ -48,6 +48,7 @@ enum State {
 struct StarvedEvent {
     entity: Entity,
 }
+
 struct RevivedEvent {
     entity: Entity,
 }
@@ -55,7 +56,7 @@ struct RevivedEvent {
 // MAIN
 
 fn main() {
-    App::build()
+    App::new()
         .add_plugins(DefaultPlugins)
         .add_event::<RevivedEvent>()
         .add_event::<StarvedEvent>()
@@ -112,7 +113,7 @@ fn setup(
     for y in 0..config.height {
         for x in 0..config.width {
             let cell = IVec2::new(x, y);
-            let translation = cell_size.extend(0.0) * cell.extend(0).as_f32() + offset;
+            let translation = cell_size.extend(0.0) * cell.extend(0).as_vec3() + offset;
             let transform = Transform::from_translation(translation);
 
             let state;
