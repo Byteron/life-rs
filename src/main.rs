@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
 use rand::Rng;
 
 // RESOURCES
@@ -12,9 +12,9 @@ struct Config {
 }
 
 pub struct Theme {
-    pub board_mat: Handle<ColorMaterial>,
-    pub alive_mat: Handle<ColorMaterial>,
-    pub dead_mat: Handle<ColorMaterial>,
+    pub board_color: Color,
+    pub alive_color: Color,
+    pub dead_color: Color,
 }
 
 struct Cells(HashMap<Coords, Entity>);
@@ -58,11 +58,17 @@ struct RevivedEvent {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(LogDiagnosticsPlugin::default())
         .add_event::<RevivedEvent>()
         .add_event::<StarvedEvent>()
+        .insert_resource(WindowDescriptor {
+            vsync: false,
+            ..Default::default()
+        })
         .insert_resource(Config {
-            width: 128,
-            height: 128,
+            width: 225,
+            height: 225,
             board_color: Color::rgb(0.2, 0.2, 0.2),
             alive_color: Color::rgb(0.8, 0.8, 0.8),
             dead_color: Color::rgb(0.1, 0.1, 0.1),
@@ -78,14 +84,13 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     windows: Res<Windows>,
     config: Res<Config>,
 ) {
     let theme = Theme {
-        board_mat: materials.add(config.board_color.into()),
-        alive_mat: materials.add(config.alive_color.into()),
-        dead_mat: materials.add(config.dead_color.into()),
+        board_color: config.board_color,
+        alive_color: config.alive_color,
+        dead_color: config.dead_color,
     };
 
     let mut cells = Cells(HashMap::default());
@@ -103,8 +108,11 @@ fn setup(
 
     commands.spawn().insert_bundle(SpriteBundle {
         transform: Transform::from_translation(center_cell.extend(0.0)),
-        material: theme.board_mat.clone(),
-        sprite: Sprite::new(Vec2::splat(screen_height as f32) + Vec2::splat(2.0)),
+        sprite: Sprite {
+            custom_size: Some(Vec2::splat(screen_height as f32) + Vec2::splat(2.0)),
+            color: theme.board_color,
+            ..Default::default()
+        },
         ..Default::default()
     });
 
@@ -117,21 +125,24 @@ fn setup(
             let transform = Transform::from_translation(translation);
 
             let state;
-            let material;
+            let color;
 
             if rng.gen_bool(0.5) {
                 state = State::Alive;
-                material = theme.alive_mat.clone();
+                color = theme.alive_color;
             } else {
                 state = State::Dead;
-                material = theme.dead_mat.clone();
+                color = theme.dead_color;
             }
             let entity = commands
                 .spawn()
                 .insert_bundle(SpriteBundle {
                     transform,
-                    material,
-                    sprite: Sprite::new(cell_size - Vec2::splat(2.0)),
+                    sprite: Sprite {
+                        custom_size: Some(cell_size - Vec2::splat(0.0)),
+                        color,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 })
                 .insert(state)
@@ -183,12 +194,12 @@ fn tick(
 fn revive(
     theme: Res<Theme>,
     mut reader: EventReader<RevivedEvent>,
-    mut query: Query<(&mut State, &mut Handle<ColorMaterial>)>,
+    mut query: Query<(&mut State, &mut Sprite)>,
 ) {
     for event in reader.iter() {
-        if let Ok((mut state, mut mat)) = query.get_mut(event.entity) {
+        if let Ok((mut state, mut sprite)) = query.get_mut(event.entity) {
             *state = State::Alive;
-            *mat = theme.alive_mat.clone();
+            sprite.color = theme.alive_color;
         }
     }
 }
@@ -196,12 +207,12 @@ fn revive(
 fn starve(
     theme: Res<Theme>,
     mut reader: EventReader<StarvedEvent>,
-    mut query: Query<(&mut State, &mut Handle<ColorMaterial>)>,
+    mut query: Query<(&mut State, &mut Sprite)>,
 ) {
     for event in reader.iter() {
-        if let Ok((mut state, mut mat)) = query.get_mut(event.entity) {
+        if let Ok((mut state, mut sprite)) = query.get_mut(event.entity) {
             *state = State::Dead;
-            *mat = theme.dead_mat.clone();
+            sprite.color = theme.dead_color;
         }
     }
 }
