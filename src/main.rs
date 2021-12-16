@@ -1,4 +1,8 @@
-use bevy::{prelude::*, utils::HashMap, diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}};
+use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+    utils::HashMap,
+};
 use rand::Rng;
 
 // RESOURCES
@@ -82,11 +86,7 @@ fn main() {
 
 // SYSTEMS
 
-fn setup(
-    mut commands: Commands,
-    windows: Res<Windows>,
-    config: Res<Config>,
-) {
+fn setup(mut commands: Commands, windows: Res<Windows>, config: Res<Config>) {
     let theme = Theme {
         board_color: config.board_color,
         alive_color: config.alive_color,
