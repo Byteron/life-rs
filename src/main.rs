@@ -61,26 +61,28 @@ struct RevivedEvent {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_plugin(LogDiagnosticsPlugin::default())
-        .add_event::<RevivedEvent>()
-        .add_event::<StarvedEvent>()
         .insert_resource(WindowDescriptor {
-            vsync: false,
+            mode: bevy::window::WindowMode::Fullscreen,
+            width: 1920.0,
+            height: 1080.0,
             ..Default::default()
         })
         .insert_resource(Config {
-            width: 225,
-            height: 225,
+            width: 300,
+            height: 300,
             board_color: Color::rgb(0.2, 0.2, 0.2),
             alive_color: Color::rgb(0.8, 0.8, 0.8),
             dead_color: Color::rgb(0.1, 0.1, 0.1),
         })
+        .add_event::<RevivedEvent>()
+        .add_event::<StarvedEvent>()
         .add_startup_system(setup)
         .add_system(tick.label("Tick"))
         .add_system(revive.after("Tick"))
         .add_system(starve.after("Tick"))
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugins(DefaultPlugins)
         .run();
 }
 
